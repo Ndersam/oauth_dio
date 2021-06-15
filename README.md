@@ -48,34 +48,28 @@ In this example we will use the [flutter_secure_storage](https://pub.dev/package
 
 ```dart
 // myclient.dart
-import 'package:oauth_dio/oauth_dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:oauth_dio/oauth_dio.dart';
 
 
 class OAuthSecureStorage extends OAuthStorage {
-  final FlutterSecureStorage storage;
-  final accessTokenKey = 'accessToken';
-  final refreshTokenKey = 'refreshToken';
+  final _storage = FlutterSecureStorage();
+  final _tokenKey = 'oauth2_token';
+
 
   @override
   Future<OAuthToken> fetch() async {
-    return OAuthToken(
-        accessToken: await storage.read(key: accessTokenKey),
-        refreshToken: await storage.read(key: refreshTokenKey);
-    )
+    final json = await _storage.read(key: _tokenKey);
+    return json == null ? null : OAuthToken.fromToken(json);
   }
 
   @override
   Future<OAuthToken> save(OAuthToken token) async {
-    await storage.write(key: accessTokenKey, value: token.acessToken);
-    await storage.write(key: refreshTokenKey, value: token.refreshToken);
+    await _storage.write(key: _tokenKey, value: token.toJson());
     return token;
   }
 
-  Future<void> clear() async {
-    await storage.delete(key: accessTokenKey);
-    await storage.delete(key: refreshTokenKey);
-  }
+  Future<void> clear() => _storage.delete(key: _tokenKey);
 }
 
 final oauth = OAuth(
@@ -85,8 +79,8 @@ final oauth = OAuth(
     storage: OAuthSecureStorage()
 );
 
-final authenticadedDio = Dio()
-authenticadedDio.interceptors.add(BearerInterceptor(oauth: oauth))
+final authenticatedDio = Dio();
+authenticatedDio.interceptors.add(BearerInterceptor(oauth: oauth));
 
 
 authenticadedDio.get('/my/protected/resource').then((response) {
